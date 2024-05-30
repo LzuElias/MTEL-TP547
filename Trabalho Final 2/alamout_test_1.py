@@ -1,7 +1,8 @@
 # import
 
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
+from scipy import special
 
 # %% Funções
 
@@ -16,23 +17,27 @@ def dist_euclid_quad (x, y):
     return d_2
 
 # Rayleigh Fading
-def ph_g_rayleigh(h, Ph=1):
-    g = h**2    
-    Ph_Rayleigh = ((1)/(Ph))*(np.exp((-g)/(Ph)))
-    return Ph_Rayleigh
+# def ph_g_rayleigh(h, Ph=1):
+#     g = h**2    
+#     Ph_Rayleigh = ((1)/(Ph))*(np.exp((-g)/(Ph)))
+#     return Ph_Rayleigh
 
 
 #%% Parâmetros
 
-t = np.linspace(0,30,2000)
+N = 10000
+t = np.linspace(0,30,10000)
 f1 = 30
 f2 = 80
 
 # Sinal
+s0_symb = []
+   
 signal_0 = np.exp(1j *2*np.pi*f1*t)
 signal_1 = np.exp(1j *2*np.pi*f2*t)
 signal_0_conj = np.conjugate(signal_0)
 signal_1_conj = np.conjugate(signal_1)
+
 
 # Módulo
 alfa_0 = 1
@@ -72,6 +77,60 @@ r1_mmrc_2rx = (h_1*signal_0)+n_1
 s0_til_mmrc_2rx = ((alfa_0**2 + alfa_1**2)*signal_0) + (h_0_conj+n_0) + (h_1_conj*n_1)
 
 
+# Max Prob decisor (MPD)
+d_s0_mmrc_2rx_s0 = dist_euclid_quad(s0_til_mmrc_2rx, signal_0)
+d_s0_mmrc_2rx_s1 = dist_euclid_quad(s0_til_mmrc_2rx, signal_1)
+
+
+# MPD_MRRC_2RX = 
+
+snrindB_range = range(0, 10)
+itr = len(snrindB_range)
+ber = [None] * itr
+ber1 = [None] * itr
+
+for n in range(0, itr):
+
+    snrindB = snrindB_range[n]
+    snr = 10.0 ** (snrindB / 10.0)
+
+    no_errors = 0
+
+    for j in range (0, N):
+
+        pt1 = ((alfa_0**2 + alfa_1**2) -1)*(np.abs(signal_0))**2 + d_s0_mmrc_2rx_s0 
+        # print(pt2)
+        pt2 = ((alfa_0**2 + alfa_1**2) -1)*((np.abs(signal_1))**2) + d_s0_mmrc_2rx_s1 
+        # print(pt2)
+        if pt1[j]<=pt2[j]:
+            MDP_MRRC_2RX = signal_0   # tx
+            r_MRRC_2RX = r0_mmrc_2rx  # rx
+        if pt1[j]>pt2[j]:
+            MDP_MRRC_2RX = signal_1   # tx
+            r_MRRC_2RX = r1_mmrc_2rx  # rx
+
+        # print(MDP_MRRC_2RX)
+        det_symbol = 2 * (r_MRRC_2RX >= 0) - 1
+        # det_symbol_1 = 2 * (r1_mmrc_2rx >= 0) - 1
+        no_errors += 1 * (MDP_MRRC_2RX != det_symbol)
+
+        # print(f"Det_symbol: {det_symbol} ")
+        # print(f"no_error: {no_errors}")
+        
+        
+    ber[n] = no_errors / n
+    print("SNR in dB:", snrindB)
+    print("Numbder of errors:", no_errors)
+    print("Error probability:", ber[n])
+
+plt.semilogy(snrindB_range, ber, 'o-')
+
+plt.xlabel('snr(dB)')
+plt.ylabel('BER')
+plt.grid(True)
+plt.title('BPSK Modulation')
+plt.legend()
+plt.show()
 #%% MRRC 1TX 4Rx
 
 
@@ -98,13 +157,12 @@ r1_NS_2Tx = (-h_0*signal_1_conj)+(h_1*signal_0_conj)+n_1
 s0_til_NS_2Tx = (h_0_conj*r0_NS_2Tx) + (h_1*np.conjugate(r1_NS_2Tx))
 s1_til_NS_2Tx = (h_1_conj*r0_NS_2Tx) - (h_0*np.conjugate(r1_NS_2Tx))
 
-# Max Prob Decisor
+# Max Prob Decisor (MPD)
 
+d_s0_NS_2TX_1RX_s0 = dist_euclid_quad(s0_til_NS_2Tx, signal_0)
+d_s0_NS_2TX_1RX_s1 = dist_euclid_quad(s0_til_NS_2Tx, signal_1)
 
-
-
-
-
+MPD_NS_2TX_1RX = ((alfa_0**2 + alfa_1**2) -1)*(np.abs(signal_0))**2 + d_s0_mmrc_2rx_s0 <= ((alfa_0**2 + alfa_1**2) -1)*((np.abs(signal_1))**2) + d_s0_mmrc_2rx_s1   
 
 #%% New Scheme with 2Tx & 2Rx
 # Resultado da banda base
@@ -120,3 +178,91 @@ r_3_NS_2Tx_2Rx = -(h_2*signal_1_conj)+(h_3*signal_0)+(n_3)
 s0_til_NS_2Tx_2Rx = ((alfa_0**2+alfa_1**2)*signal_0) + (h_0_conj*n_0) + (h_1*np.conjugate(n_1))
 s1_til_NS_2Tx_2Rx = ((alfa_0**2+alfa_1**2))-(h_0*np.conjugate(n_1))+(h_1_conj*n_0)
 
+
+
+#%% BER
+
+
+
+# N = 10**6 # number of bits or symbols
+
+# simber=[]
+# # Transmitter
+# ip = np.random.uniform(0,1,N)>0.5; # generating 0,1 with equal probability
+
+# s = 2*ip-1; # BPSK modulation 0 -> -1; 1 -> 1
+
+#  # white gaussian noise, 0dB variance
+# Eb_N0_dB = np.arange(-3,10,1); # multiple Eb/N0 values
+
+# for ii in Eb_N0_dB:
+#    # Noise addition
+
+#    n = 1 / np.sqrt(2) * s0_til_mmrc_2rx   
+#    #n = 1 / np.sqrt(2) * (np.random.normal(0, 1, N) + np.random.normal(0, 1, N) * 1j);
+#    y = s + 10**(-ii/20)*n; # additive white gaussian noise
+
+#    # receiver - hard decision decoding
+   
+#    ipHat = (alfa_0**2 + alfa_1**2 -1)*(np.abs(signal_0))**2 + d_s0_mmrc_2rx_s0 <= (alfa_0**2 + alfa_1**2 -1)*(np.abs(signal_1))**2 + d_s0_mmrc_2rx_s1   
+#    # ipHat = np.real(y)>0;
+#    ber = np.sum(ip !=ipHat)/N; # simulated ber
+#    simber=np.append(simber,ber)
+
+# theoryBer = 0.5*special.erfc(np.sqrt(10.**(Eb_N0_dB/10))); # theoretical ber
+
+
+# plt.semilogy(Eb_N0_dB,theoryBer,'b.-');
+# plt.semilogy(Eb_N0_dB,simber,'mx-');
+# plt.axis([-3, 10, 10**(-5), 0.5])
+# plt.grid()
+# plt.figlegend(['theory', 'simulation']);
+# plt.xlabel('Eb/No, dB');
+# plt.ylabel('Bit Error Rate');
+# plt.show()
+
+# # %%
+# from numpy import sqrt
+# import random
+# import matplotlib.pyplot as plt
+
+# N = 300000
+# snrindB_range = range(0, 10)
+# itr = len(snrindB_range)
+# ber = [None] * itr
+# ber1 = [None] * itr
+# tx_symbol = 0
+# noise = 0
+# ch_coeff = 0
+# rx_symbol = 0
+# det_symbol = 0
+# for n in range(0, itr):
+
+#     snrindB = snrindB_range[n]
+#     snr = 10.0 ** (snrindB / 10.0)
+#     noise_std = 1 / sqrt(2 * snr)
+#     noise_mean = 0
+
+#     no_errors = 0
+#     for m in range(0, N):
+#         # tx_symbol = 2 * random.randint(0, 1) - 1
+#         # noise = random.gauss(noise_mean, noise_std)
+#         #rx_symbol = tx_symbol + noise
+#         tx_symbol = signal_0
+#         rx_symbol = r0_mmrc_2rx
+#         det_symbol = 2 * (rx_symbol >= 0) - 1
+#         no_errors += 1 * (tx_symbol != det_symbol)
+
+#     ber[n] = no_errors / N
+#     print("SNR in dB:", snrindB)
+#     print("Numbder of errors:", no_errors)
+#     print("Error probability:", ber[n])
+# plt.semilogy(snrindB_range, ber, 'o-', label='practical')
+
+# plt.xlabel('snr(dB)')
+# plt.ylabel('BER')
+# plt.grid(True)
+# plt.title('BPSK Modulation')
+# plt.legend()
+# plt.show()
+# %%
