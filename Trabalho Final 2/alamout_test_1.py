@@ -1,3 +1,5 @@
+#%%
+
 # import
 
 import numpy as np
@@ -26,17 +28,17 @@ def dist_euclid_quad (x, y):
 #%% Parâmetros
 
 N = 10000
-t = np.linspace(0,30,10000)
+t = np.linspace(0,30,N)
 f1 = 30
 f2 = 80
 
 # Sinal
 s0_symb = []
    
-signal_0 = np.exp(1j *2*np.pi*f1*t)
-signal_1 = np.exp(1j *2*np.pi*f2*t)
-signal_0_conj = np.conjugate(signal_0)
-signal_1_conj = np.conjugate(signal_1)
+signal_0 = (1/(np.sqrt(2)))*np.exp(1j *2*np.pi*f1*t)
+signal_1 = (1/(np.sqrt(2)))*np.exp(1j *2*np.pi*f2*t)
+signal_0_conj = (1/(np.sqrt(2)))*np.conjugate(signal_0)
+signal_1_conj = (1/(np.sqrt(2)))*np.conjugate(signal_1)
 
 
 # Módulo
@@ -52,20 +54,20 @@ theta_2 = 80
 theta_3 = 135
 
 # Canais
-h_0 = canal_h(alfa_0, theta_0)
-h_0_conj = np.conjugate(h_0)
-h_1 = canal_h(alfa_1, theta_1)
-h_1_conj = np.conjugate(h_1)
-h_2 = canal_h(alfa_2, theta_2)
-h_2_conj = np.conjugate(h_2)
-h_3 = canal_h(alfa_3, theta_3)
-h_3_conj = np.conjugate(h_3)
+h_0 = canal_h(alfa_0, theta_0)*(1/(np.sqrt(2)))
+h_0_conj = np.conjugate(h_0)*(1/(np.sqrt(2)))
+h_1 = canal_h(alfa_1, theta_1)*(1/(np.sqrt(2)))
+h_1_conj = np.conjugate(h_1)*(1/(np.sqrt(2)))
+h_2 = canal_h(alfa_2, theta_2)*(1/(np.sqrt(2)))
+h_2_conj = np.conjugate(h_2)*(1/(np.sqrt(2)))
+h_3 = canal_h(alfa_3, theta_3)*(1/(np.sqrt(2)))
+h_3_conj = np.conjugate(h_3)*(1/(np.sqrt(2)))
 
 # Ruído
-n_0 = np.random.rand() + 1j*np.random.rand()
-n_2 = np.random.rand() + 1j*np.random.rand()
-n_1 = np.random.rand() + 1j*np.random.rand()
-n_3 = np.random.rand() + 1j*np.random.rand()
+n_0 = np.random.rand() + 1j*np.random.rand()*(1/(np.sqrt(2)))
+n_2 = np.random.rand() + 1j*np.random.rand()*(1/(np.sqrt(2)))
+n_1 = np.random.rand() + 1j*np.random.rand()*(1/(np.sqrt(2)))
+n_3 = np.random.rand() + 1j*np.random.rand()*(1/(np.sqrt(2)))
 
 #%% MRRC 1Tx 2Rx
 
@@ -88,6 +90,9 @@ snrindB_range = range(0, 10)
 itr = len(snrindB_range)
 ber = [None] * itr
 ber1 = [None] * itr
+ber3 = []
+det_symbol = []
+ipHat2 = []
 
 for n in range(0, itr):
 
@@ -108,22 +113,43 @@ for n in range(0, itr):
         if pt1[j]>pt2[j]:
             MDP_MRRC_2RX = signal_1   # tx
             r_MRRC_2RX = r1_mmrc_2rx  # rx
+        
+        # ipHat = np.real(r_MRRC_2RX)
+        # ber2 = np.sum(MDP_MRRC_2RX != ipHat)/N
+
 
         # print(MDP_MRRC_2RX)
-        det_symbol = 2 * (r_MRRC_2RX >= 0) - 1
-        # det_symbol_1 = 2 * (r1_mmrc_2rx >= 0) - 1
-        no_errors += 1 * (MDP_MRRC_2RX != det_symbol)
+        #det_symbol = 2 * (r_MRRC_2RX >= 0.5) - 1
+
+        if r_MRRC_2RX[j] >= 0.5:
+            r_MRRC_2RX_new = 1
+            det_symbol2 = 2 * r_MRRC_2RX_new -1
+            det_symbol = np.append(det_symbol, det_symbol2)
+        else:
+            r_MRRC_2RX_new = 0
+            det_symbol2 = 2 * r_MRRC_2RX_new -1
+            det_symbol = np.append(det_symbol, det_symbol2)
+
+        
+        # no_errors += 1 * (MDP_MRRC_2RX != det_symbol2)
 
         # print(f"Det_symbol: {det_symbol} ")
         # print(f"no_error: {no_errors}")
+        ipHat = np.real(r_MRRC_2RX)
+        ipHat2 = np.append(ipHat2, ipHat)
+        ber2 = np.sum(det_symbol2 != ipHat2)/N
         
-        
-    ber[n] = no_errors / n
-    print("SNR in dB:", snrindB)
-    print("Numbder of errors:", no_errors)
-    print("Error probability:", ber[n])
+    # ipHat = np.real(r_MRRC_2RX)
+    # ber2 = np.sum(det_symbol2 != ipHat)/N
+    
+    #ber[n] = no_errors / n
+    ber3 = np.append(ber3,ber2)
+    # print("SNR in dB:", snrindB)
+    # print("Numbder of errors:", no_errors)
+    # print("Error probability:", ber[n])
 
-plt.semilogy(snrindB_range, ber, 'o-')
+#%% PLOT
+plt.semilogy(snrindB_range, ber3, 'o-')
 
 plt.xlabel('snr(dB)')
 plt.ylabel('BER')
@@ -178,91 +204,3 @@ r_3_NS_2Tx_2Rx = -(h_2*signal_1_conj)+(h_3*signal_0)+(n_3)
 s0_til_NS_2Tx_2Rx = ((alfa_0**2+alfa_1**2)*signal_0) + (h_0_conj*n_0) + (h_1*np.conjugate(n_1))
 s1_til_NS_2Tx_2Rx = ((alfa_0**2+alfa_1**2))-(h_0*np.conjugate(n_1))+(h_1_conj*n_0)
 
-
-
-#%% BER
-
-
-
-# N = 10**6 # number of bits or symbols
-
-# simber=[]
-# # Transmitter
-# ip = np.random.uniform(0,1,N)>0.5; # generating 0,1 with equal probability
-
-# s = 2*ip-1; # BPSK modulation 0 -> -1; 1 -> 1
-
-#  # white gaussian noise, 0dB variance
-# Eb_N0_dB = np.arange(-3,10,1); # multiple Eb/N0 values
-
-# for ii in Eb_N0_dB:
-#    # Noise addition
-
-#    n = 1 / np.sqrt(2) * s0_til_mmrc_2rx   
-#    #n = 1 / np.sqrt(2) * (np.random.normal(0, 1, N) + np.random.normal(0, 1, N) * 1j);
-#    y = s + 10**(-ii/20)*n; # additive white gaussian noise
-
-#    # receiver - hard decision decoding
-   
-#    ipHat = (alfa_0**2 + alfa_1**2 -1)*(np.abs(signal_0))**2 + d_s0_mmrc_2rx_s0 <= (alfa_0**2 + alfa_1**2 -1)*(np.abs(signal_1))**2 + d_s0_mmrc_2rx_s1   
-#    # ipHat = np.real(y)>0;
-#    ber = np.sum(ip !=ipHat)/N; # simulated ber
-#    simber=np.append(simber,ber)
-
-# theoryBer = 0.5*special.erfc(np.sqrt(10.**(Eb_N0_dB/10))); # theoretical ber
-
-
-# plt.semilogy(Eb_N0_dB,theoryBer,'b.-');
-# plt.semilogy(Eb_N0_dB,simber,'mx-');
-# plt.axis([-3, 10, 10**(-5), 0.5])
-# plt.grid()
-# plt.figlegend(['theory', 'simulation']);
-# plt.xlabel('Eb/No, dB');
-# plt.ylabel('Bit Error Rate');
-# plt.show()
-
-# # %%
-# from numpy import sqrt
-# import random
-# import matplotlib.pyplot as plt
-
-# N = 300000
-# snrindB_range = range(0, 10)
-# itr = len(snrindB_range)
-# ber = [None] * itr
-# ber1 = [None] * itr
-# tx_symbol = 0
-# noise = 0
-# ch_coeff = 0
-# rx_symbol = 0
-# det_symbol = 0
-# for n in range(0, itr):
-
-#     snrindB = snrindB_range[n]
-#     snr = 10.0 ** (snrindB / 10.0)
-#     noise_std = 1 / sqrt(2 * snr)
-#     noise_mean = 0
-
-#     no_errors = 0
-#     for m in range(0, N):
-#         # tx_symbol = 2 * random.randint(0, 1) - 1
-#         # noise = random.gauss(noise_mean, noise_std)
-#         #rx_symbol = tx_symbol + noise
-#         tx_symbol = signal_0
-#         rx_symbol = r0_mmrc_2rx
-#         det_symbol = 2 * (rx_symbol >= 0) - 1
-#         no_errors += 1 * (tx_symbol != det_symbol)
-
-#     ber[n] = no_errors / N
-#     print("SNR in dB:", snrindB)
-#     print("Numbder of errors:", no_errors)
-#     print("Error probability:", ber[n])
-# plt.semilogy(snrindB_range, ber, 'o-', label='practical')
-
-# plt.xlabel('snr(dB)')
-# plt.ylabel('BER')
-# plt.grid(True)
-# plt.title('BPSK Modulation')
-# plt.legend()
-# plt.show()
-# %%
