@@ -135,18 +135,18 @@ for n in range(0, itr):
 
         # print(f"Det_symbol: {det_symbol} ")
         # print(f"no_error: {no_errors}")
-        ipHat = np.real(r_MRRC_2RX)
-        ipHat2 = np.append(ipHat2, ipHat)
-        ber2 = np.sum(det_symbol2 != ipHat2)/N
+        ipHat = (np.real(r_MRRC_2RX)/snrindB)
+        #ipHat2 = np.append(ipHat2, ipHat)
+        ber2 = (np.sum(det_symbol2 != ipHat)/snrindB)/N
         
     # ipHat = np.real(r_MRRC_2RX)
     # ber2 = np.sum(det_symbol2 != ipHat)/N
     
     #ber[n] = no_errors / n
     ber3 = np.append(ber3,ber2)
-    # print("SNR in dB:", snrindB)
-    # print("Numbder of errors:", no_errors)
-    # print("Error probability:", ber[n])
+    print("SNR in dB:", snrindB)
+    print("Numbder of errors:", no_errors)
+    print("Error probability:", ber[n])
 
 #%% PLOT
 plt.semilogy(snrindB_range, ber3, 'o-')
